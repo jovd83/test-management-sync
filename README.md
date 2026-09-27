@@ -1,172 +1,109 @@
-# Test Artifact Export Skill
+# Test Management Sync
 
-[![Validate Skills](https://github.com/jovd83/test-artifact-export-skill/actions/workflows/validate.yml/badge.svg)](https://github.com/jovd83/test-artifact-export-skill/actions/workflows/validate.yml)
-[![version](https://img.shields.io/badge/version-1.0.0-blue)](CHANGELOG.md)
+[![Validate Skill](https://github.com/jovd83/test-management-sync/actions/workflows/validate.yml/badge.svg)](https://github.com/jovd83/test-management-sync/actions/workflows/validate.yml)
+[![version](https://img.shields.io/badge/version-2.0.0-blue)](CHANGELOG.md)
+[![status](https://img.shields.io/badge/status-stable-3fb950)](SKILL.md)
+[![category](https://img.shields.io/badge/category-testing-0a7ea4)](SKILL.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jovd83)
 
-A standalone Agent Skill for turning already-designed test cases into clean review artifacts or tool-ready export artifacts.
+`test-management-sync` keeps test artifacts and test-management tools in step: it exports approved test cases, maps the IDs a tool assigned back into the tests, and publishes execution results into TestRail, Xray, Zephyr Scale or TestLink. It was `test-artifact-export-skill`, and it replaces the `transformers/`, `mappers/` and `reporters/` sub-skills of the Playwright, Cypress and Rest Assured skill packs.
 
-This repository is intentionally focused on formatting and export. It does not generate new coverage, choose test-design techniques, or infer missing requirements. Its job is to take existing test logic, normalize it, check destination requirements, and render a reliable output contract.
+## What This Skill Does
 
-## What This Skill Is Responsible For
+Test-management work comes in three steps, whatever the test framework. Get the cases into the tool, write the tool's IDs back into the tests, and send results against those IDs. The framework packs used to carry their own copies of each step for every tool: 36 small sub-skills that were 78–97% identical once the framework name was set aside. The steps are framework-agnostic; only the result files and the place where an ID lives in the code differ, and those fit in two tables.
 
-- Formatting approved test cases into markdown, TDD-style markdown, plain text, or BDD/Gherkin
-- Exporting approved test cases into Xray-compatible feature files, Zephyr Scale CSV, and mapping-oriented TestLink or TestRail outputs
-- Preserving traceability and known metadata during conversion
-- Refusing to invent missing business logic or destination metadata
-- Providing deterministic validation where this repository has enough local contract knowledge
+| Job | What it does |
+|---|---|
+| **Export** | Renders approved test cases as detailed or TDD markdown, summary tables, plain text, BDD/Gherkin, Xray `.feature` files or bundles, Zephyr Scale CSV, or TestLink and TestRail field mappings. Jinja templates, JSON schemas, a renderer and a format validator make the output deterministic where the contract is known. |
+| **Map IDs back** | Applies TestRail case IDs, Xray keys, Zephyr Scale keys or TestLink external IDs to Playwright, Cypress, Rest Assured or JUnit 5 tests and to markdown case documents, following the repository's existing convention. It matches on stable IDs before titles and never invents or silently overwrites an ID. |
+| **Publish results** | Sends JUnit XML or JSON results into the right run, execution, cycle or plan. It normalizes statuses, attaches short failure evidence, and reports back what was sent, skipped and rejected. |
 
-## What This Skill Is Not Responsible For
+## What This Skill Does Not Do
 
-- Designing new test cases from requirements
-- Choosing boundary-value, equivalence-partitioning, decision-table, or other test-design techniques
-- Maintaining cross-agent shared memory
-- Supporting every vendor schema on the internet
+- **It does not design tests.** Choosing techniques or deriving cases from requirements belongs to `test-design-orchestrator`; reviewing drafted cases belongs to `test-case-reviewer`.
+- **It does not run tests.** Execution stays with the framework packs (`playwright-skill`, `cypress-skill`, `restassured-skill`, `junit5-skill`).
+- **It does not invent IDs, fields or schemas.** When a destination contract is incomplete, it returns a mapping plan instead of a guessed payload.
+- **It does not administer the tools.** Creating projects, users or permissions in TestRail, Jira or TestLink is out of scope. It creates a run, execution or cycle only after confirmation.
 
-If you need test design first, run a test-design or planning skill before this one.
+## When To Use It
 
-## Repository Structure
+Use it when:
 
-```text
-.
-|-- SKILL.md
-|-- agents/openai.yaml
-|-- assets/templates/
-|-- examples/
-|-- evals/
-|-- references/
-|-- scripts/
-|-- schemas/
-`-- tests/
+- approved test cases need to go into Xray, Zephyr Scale, TestRail or TestLink, or into a review format;
+- the tool has assigned IDs and the tests should carry them;
+- a CI run's results should appear in a test run, Test Execution or test cycle;
+- a test-lifecycle chain reaches its export or reporting phase.
+
+To design or review the cases themselves, use the sibling skills named above.
+
+## Repository Layout
+
 ```
-
-## Supported Destinations
-
-### Human-review artifacts
-
-- Detailed markdown test cases
-- TDD-style markdown
-- Markdown summary tables
-- Plain-text scenario notes
-- BDD/Gherkin feature text
-
-### Tool-oriented artifacts
-
-- Xray `.feature` files
-- Xray zipped feature bundles
-- Zephyr Scale CSV
-- TestLink-oriented field mappings
-- TestRail-oriented field mappings
+test-management-sync/
+├── SKILL.md                         # the three jobs, export workflow, guardrails
+├── references/
+│   ├── map-ids.md                   # ID shapes per tool, ID placement per framework
+│   ├── publish-results.md           # result files, targets, status normalization
+│   ├── destination-field-matrix.md  # required fields per export destination
+│   ├── formatter-guide.md, formatting-guidelines.md, normalized-test-case-model.md
+│   ├── xray-gherkin-import.md, testlink-import-file-formats.pdf
+│   └── new-destination-research-workflow.md
+├── assets/templates/                # Jinja templates per export format
+├── schemas/                         # normalized test case and render request
+├── scripts/                         # render-artifact, format-validator, scaffold, validate-repo
+├── examples/                        # source cases and expected renders
+├── evals/trigger-queries.json       # 11 trigger and non-trigger cases
+└── tests/                           # renderer and validator tests
+```
 
 ## Installation
 
-Place this skill folder where your Codex-compatible skill runtime discovers skills. For local Codex setups that usually means:
-
-- `%USERPROFILE%\\.codex\\skills\\test-artifact-export-skill`
-- or another configured skills directory
-
-The required entrypoint is [SKILL.md](./SKILL.md). UI metadata lives in [agents/openai.yaml](./agents/openai.yaml).
-
-## How It Works
-
-1. Read the source artifact and confirm the test logic already exists.
-2. Normalize it into the repository's internal case model.
-3. Check which required fields the target destination needs.
-4. Ask only for missing required fields.
-5. Render the artifact with the matching template or bundled contract.
-6. Validate when a deterministic validator exists.
-
-The repository also includes:
-
-- `scripts/render-artifact.py` for deterministic rendering from a normalized JSON source
-- `schemas/` for checked-in source and request contracts
-- `scripts/scaffold-new-destination.py` for safely growing the repo when a new format is researched
-
-## Validation And Testing
-
-Validate the skill definition:
-
-```powershell
-python C:\Users\jochi\.codex\skills\.system\skill-creator\scripts\quick_validate.py .
+```bash
+npx skills add jovd83/test-management-sync
 ```
 
-Run repository tests:
+Manual alternative:
 
-```powershell
-python -m unittest discover -s tests -p "test_*.py"
+```bash
+git clone https://github.com/jovd83/test-management-sync.git
+```
+
+Then place the folder in `~/.agents/skills/test-management-sync/`, or wherever your agent looks for local skills.
+
+Rendering and validation need Python 3.11 or later. Publishing uses the project's existing reporter, CLI or API client and credentials from the environment.
+
+## Usage
+
+| Ask | Job |
+|---|---|
+| "Turn these approved checkout cases into Xray feature files" | Export |
+| "Convert these manual cases to a Zephyr Scale CSV" | Export |
+| "TestRail assigned case IDs; add them to the Playwright tests" | Map IDs back |
+| "Publish last night's Cypress results to the Zephyr cycle for 4.2" | Publish results |
+
+```bash
+python scripts/render-artifact.py markdown examples/source/checkout-cases.json out/checkout-tdd.md
+python scripts/format-validator.py xray examples/expected/checkout-xray.feature
+```
+
+## Validation
+
+```bash
 python scripts/validate-repo.py
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
-Render an artifact from the bundled example source:
+`.github/workflows/validate.yml` runs both on every push and pull request. The format validator checks rendered markdown, summaries, plain text, Xray features and Zephyr CSV against the bundled contracts.
 
-```powershell
-python scripts/render-artifact.py markdown examples\source\checkout-cases.json out\checkout-tdd.md
-```
+## Evaluation Strategy
 
-Run validator examples manually:
-
-```powershell
-python scripts/format-validator.py markdown examples\expected\checkout-tdd.md
-python scripts/format-validator.py summary examples\expected\checkout-summary.md
-python scripts/format-validator.py plain_text examples\expected\checkout-plain-text.md
-python scripts/format-validator.py xray examples\expected\checkout-xray.feature
-python scripts/format-validator.py zephyr examples\expected\checkout-zephyr.csv
-```
-
-## Examples
-
-- Source artifact: [examples/source/checkout-cases.json](./examples/source/checkout-cases.json)
-- Expected markdown: [examples/expected/checkout-tdd.md](./examples/expected/checkout-tdd.md)
-- Expected summary: [examples/expected/checkout-summary.md](./examples/expected/checkout-summary.md)
-- Expected plain text: [examples/expected/checkout-plain-text.md](./examples/expected/checkout-plain-text.md)
-- Expected Xray feature: [examples/expected/checkout-xray.feature](./examples/expected/checkout-xray.feature)
-- Expected Zephyr CSV: [examples/expected/checkout-zephyr.csv](./examples/expected/checkout-zephyr.csv)
-
-## Memory Boundaries
-
-- Runtime memory: transient normalized case model and missing-field checklist for one task
-- Project-local persistent memory: exported artifacts written into the user's repository when requested
-- Shared memory: external concern, not implemented in this skill
-
-This separation is deliberate. Runtime formatting work should not silently become persistent memory.
-
-## Optional Integrations
-
-This skill fits well behind:
-
-- test-design skills that generate approved scenarios
-- framework-specific documentation skills that need a final formatter/exporter
-- CI workflows that validate exported artifacts before import
-
-These integrations are optional. The skill remains usable as a standalone formatter.
-
-## Adding A New Destination Format
-
-This repository supports a structured expansion workflow for new formats.
-
-When a user asks for a format the repo does not yet support, the expected process is:
-
-1. Research the destination from official or primary documentation.
-2. Record the contract in `references/`.
-3. Extend the destination field matrix.
-4. Add templates or static assets only when deterministic rendering is realistic.
-5. Add examples, tests, and validator logic where feasible.
-
-Use:
-
-```powershell
-python scripts/scaffold-new-destination.py --name azure-devops --mode mapping
-```
-
-The scaffold is intentionally lightweight. It creates the repo slots that a contributor or agent should fill after research.
+`evals/trigger-queries.json` holds 11 cases across the three jobs. The negative cases are designing new tests, setting up a TestRail instance, and diagnosing a failed test. The rendering path is covered by the unit tests against `examples/expected/`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for repo expectations and change boundaries.
+Edit in this repository, then sync the folder to `~/.agents/skills/test-management-sync/`. The installed copy is downstream and should never be edited directly. To add an export destination, follow `references/new-destination-research-workflow.md` and `scripts/scaffold-new-destination.py`.
 
-## Out Of Scope For This Repository
+## License
 
-- Vendor APIs for publishing artifacts directly into test-management systems
-- Full JSON schema support for every Xray/TestRail/TestLink import path
-- Autonomous self-modification or implicit memory promotion
+MIT — see [LICENSE](LICENSE).

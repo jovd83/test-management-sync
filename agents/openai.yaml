@@ -1,5 +1,5 @@
 interface:
-  display_name: "Test Artifact Export Skill"
-  short_description: "Normalize and export approved test cases"
+  display_name: "Test Management Sync"
+  short_description: "Export test cases, map tool IDs back, publish results"
   brand_color: "#0F766E"
-  default_prompt: "Use $test-artifact-export-skill to normalize these approved test cases and render them into the requested review or import format."
+  default_prompt: "Use $test-management-sync to export approved test cases into a review or import format, map TestRail, Xray, Zephyr Scale or TestLink IDs back into the tests, or publish execution results into those tools."

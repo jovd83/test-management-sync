@@ -18,5 +18,29 @@
   {
     "query": "Analyze these requirements and create missing test coverage.",
     "should_trigger": false
+  },
+  {
+    "query": "TestRail assigned case IDs to our exported cases; add them to the matching Playwright tests.",
+    "should_trigger": true
+  },
+  {
+    "query": "Apply these Xray test keys to our Rest Assured test classes so the results can be linked.",
+    "should_trigger": true
+  },
+  {
+    "query": "Publish last night's Cypress JUnit results to the Zephyr Scale test cycle for release 4.2.",
+    "should_trigger": true
+  },
+  {
+    "query": "Report our JUnit 5 run results into the TestLink test plan for build 118.",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up a new TestRail instance and configure user permissions.",
+    "should_trigger": false
+  },
+  {
+    "query": "Why did the checkout test fail in CI last night?",
+    "should_trigger": false
   }
 ]

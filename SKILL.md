@@ -1,26 +1,34 @@
 ---
-name: test-artifact-export-skill
-description: Format already-designed test cases or artifacts into review-ready markdown, TDD case specs, scenario notes, BDD/Gherkin features, Xray Gherkin bundles, Zephyr Scale CSV, TestLink, or TestRail mappings. Use when test logic exists and Codex must normalize and render it for review or import.
+name: test-management-sync
+description: Keep test cases and results in sync with test-management tools, and render approved test cases for review. Three jobs - export approved cases as detailed or TDD markdown, summary tables, plain text, BDD/Gherkin, Xray .feature bundles, Zephyr Scale CSV, or TestLink and TestRail mappings; map the IDs a tool assigned (TestRail, Xray, Zephyr Scale, TestLink) back into local tests and docs; and publish Playwright, Cypress, Rest Assured or JUnit results into those tools. Use when the test logic already exists. Not for designing tests or choosing techniques.
 metadata:
-  dispatcher-layer: information
+  author: jovd83
+  version: 2.0.0
+  dispatcher-layer: execution
   dispatcher-lifecycle: active
   dispatcher-category: testing
-  dispatcher-capabilities: test-artifact-export, test-case-formatting, test-management-export
-  dispatcher-accepted-intents: render_test_artifact, export_test_cases, format_test_cases
-  dispatcher-input-artifacts: approved_test_cases, normalized_test_case_model, scenario_list, narrative_test_docs
-  dispatcher-output-artifacts: markdown_test_cases, bdd_feature, xray_feature_bundle, zephyr_csv, testlink_mapping, testrail_mapping
-  dispatcher-stack-tags: testing, framework-agnostic, export
-  dispatcher-risk: low
+  dispatcher-capabilities: test-artifact-export, test-case-formatting, test-management-export, test-management-mapping, test-management-reporting
+  dispatcher-accepted-intents: render_test_artifact, export_test_cases, format_test_cases, map_test_management_ids, report_test_results
+  dispatcher-input-artifacts: approved_test_cases, normalized_test_case_model, scenario_list, narrative_test_docs, test_management_ids, execution_results
+  dispatcher-output-artifacts: markdown_test_cases, bdd_feature, xray_feature_bundle, zephyr_csv, testlink_mapping, testrail_mapping, mapping_report, published_results
+  dispatcher-stack-tags: testing, framework-agnostic, export, test-management, testrail, xray, zephyr, testlink
+  dispatcher-risk: medium
   dispatcher-writes-files: true
-
 ---
 
-# Test Artifact Export Skill
+# Test Management Sync
 
-> **Author:** jovd83 | **Version:** 1.1.1
+> **Author:** jovd83 | **Version:** 2.0.0
 
+Keep test artifacts and test-management tools in step, in three jobs:
 
-Render existing test-case content into a requested destination format. This skill is for formatting and export, not for test design, coverage generation, or requirements analysis.
+| Job | What it does | Read |
+|---|---|---|
+| **Export** | Render existing test cases into a review or import format | this file, from "Scope" on |
+| **Map IDs back** | Apply the IDs a tool assigned to the local tests and docs | `./references/map-ids.md` |
+| **Publish results** | Push execution results into TestRail, Xray, Zephyr Scale or TestLink | `./references/publish-results.md` |
+
+The usual order is export, then map, then publish. The Playwright, Cypress, Rest Assured and JUnit 5 skill packs hand their test-management work to this skill; it replaced their `transformers/`, `mappers/` and `reporters/` sub-skills in 2.0.0. This skill never designs tests, generates coverage or analyses requirements.
 
 ## Scope
 
@@ -43,7 +51,7 @@ If the user needs test design first, route them to the relevant test-design or t
 
 ## Working With Other Skills
 
-- Accept handoffs from other skills that need test cases rendered, exported, or formatted.
+- Accept handoffs from other skills that need test cases rendered, exported, or formatted, and from the framework skill packs for mapping IDs and publishing results.
 - Consume normalized scenario data when available instead of re-deriving business intent from prose.
 - Keep this skill focused on rendering and export. Do not take over technique selection or coverage planning just because the input is thin.
 
@@ -116,9 +124,9 @@ Do not persist this runtime normalization automatically.
 
 - Runtime memory: use a temporary normalized case model and missing-field checklist for the current task only.
 - Project-local persistent memory: create files only when the user asked for durable artifacts such as exported feature files, CSVs, or markdown case documents in their repo.
-- Shared memory: out of scope. If cross-project reuse is needed, integrate an external shared-memory skill instead of storing reusable knowledge in this skill implicitly.
+- Credentials for mapping or publishing: read from the environment or the team's secret store at run time; never store them.
 
-Do not automatically promote runtime notes into project-local or shared memory.
+Do not automatically promote runtime notes into project-local files.
 
 ## Execution Workflow
 
@@ -205,6 +213,24 @@ If a destination has no deterministic validator in this repo, say that clearly a
 - Prefer a mapping-first workflow when the import shape is ambiguous.
 - Stay within fields supported by the source artifact and bundled references.
 - If the user requests a concrete import payload but the destination contract is incomplete or ambiguous in this repo, say so plainly and return the mapping plan instead of fabricating a schema.
+
+## Map IDs Back
+
+Once the tool has assigned IDs, apply them to the local tests and case documents so results can be traced and published. Follow `./references/map-ids.md`. In short:
+- Match on stable IDs or requirement links before titles.
+- Keep the repository's existing ID convention.
+- Never invent an ID or silently overwrite a different one.
+- Return a table of what was applied where, plus the unmatched cases.
+
+## Publish Results
+
+Push Playwright, Cypress, Rest Assured or JUnit 5 results into the tool. Follow `./references/publish-results.md`. In short:
+- Confirm the target run, execution or cycle, and never create one silently.
+- Normalize statuses, and use the reporting path the project already has.
+- Attach short evidence for failures.
+- Report back what was sent, skipped and rejected.
+
+Publishing writes into a shared system, so confirm before sending, keep secrets out of output, and never report an unmapped result.
 
 ## Failure And Escalation Rules
 

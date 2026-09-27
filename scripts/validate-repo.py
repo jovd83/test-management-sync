@@ -15,6 +15,8 @@ REQUIRED_PATHS = [
     "references/normalized-test-case-model.md",
     "references/destination-field-matrix.md",
     "references/new-destination-research-workflow.md",
+    "references/map-ids.md",
+    "references/publish-results.md",
     "schemas/normalized-test-case.schema.json",
     "schemas/render-request.schema.json",
     "scripts/format-validator.py",
