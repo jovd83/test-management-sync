@@ -41,14 +41,11 @@ Do not use this skill to:
 
 If the user needs test design first, route them to the relevant test-design or test-planning skill before formatting.
 
-## Dispatcher Integration
+## Working With Other Skills
 
-Use `skill-dispatcher` as the primary entrypoint when another skill needs export or formatting help from this skill.
-
-- Accept dispatcher-led handoffs for intents such as `render_test_artifact`, `export_test_cases`, or `format_test_cases`.
+- Accept handoffs from other skills that need test cases rendered, exported, or formatted.
 - Consume normalized scenario data when available instead of re-deriving business intent from prose.
 - Keep this skill focused on rendering and export. Do not take over technique selection or coverage planning just because the input is thin.
-- Treat direct repo paths to this skill as a compatibility fallback rather than the preferred integration pattern.
 
 ## Read In This Order
 
